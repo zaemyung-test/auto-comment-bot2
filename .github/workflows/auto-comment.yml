@@ -1,0 +1,37 @@
+name: Auto Comment Bot
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  comment-and-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close issue if labeled feedback or suggestion
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const labels = (issue.labels || []).map(l => l.name.toLowerCase());
+            const trigger = labels.includes('feedback') || labels.includes('suggestion');
+            if (trigger) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'Thank you for your contribution!'
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            } else {
+              console.log('No matching labels; nothing to do.');
+            }
